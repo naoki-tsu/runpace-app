@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ランナーペース＆タイム計算機</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Inter Font & FontAwesome for icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Touch-friendly inputs */
+        input, button, select {
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="bg-brand-500 text-white p-2 rounded-xl shadow-md">
+                    <i class="fa-solid fa-person-running text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-black text-lg tracking-wider bg-gradient-to-r from-white via-slate-100 to-brand-100 bg-clip-text text-transparent">RUN PACE</h1>
+                    <p class="text-[10px] text-slate-400 font-medium tracking-wide">ランニングペース・タイム算出</p>
+                </div>
+            </div>
+            <div class="text-xs bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-full text-brand-400 font-bold flex items-center space-x-1 shadow-inner">
+                <i class="fa-solid fa-bolt text-[10px]"></i>
+                <span>Smart Runner</span>
+            </div>
+        </div>
+
+        <!-- Mode Selector Tabs -->
+        <div class="max-w-md mx-auto px-4 pb-3">
+            <div class="grid grid-cols-2 gap-2 bg-slate-800/90 p-1 rounded-2xl border border-slate-700/60 shadow-inner">
+                <button id="tab-pace" onclick="switchMode('pace')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 bg-brand-500 text-white shadow-md">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>ペース算出</span>
+                </button>
+                <button id="tab-time" onclick="switchMode('time')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-flag-checkered"></i>
+                    <span>タイム算出</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md w-full mx-auto p-4 flex-grow mb-16">
+        
+        <!-- Mode 1: Calculate Pace -->
+        <div id="section-pace" class="space-y-4">
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-full blur-2xl -z-0 pointer-events-none"></div>
+                
+                <h2 class="text-sm font-bold text-slate-700 mb-3 flex items-center space-x-2 relative z-10">
+                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                    <span>1. 距離を選択または入力</span>
+                </h2>
+
+                <!-- Presets -->
+                <div class="grid grid-cols-3 gap-2 mb-3 relative z-10">
+                    <button type="button" onclick="setDistance(5)" class="preset-btn-p bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-normal">5km</span>
+                        <span class="text-sm">5 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(10)" class="preset-btn-p bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-normal">10km</span>
+                        <span class="text-sm">10 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(15)" class="preset-btn-p bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-normal">15km</span>
+                        <span class="text-sm">15 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(21.0975)" class="preset-btn-p bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center col-span-1.5">
+                        <span class="text-[10px] text-slate-400 font-normal">ハーフ</span>
+                        <span class="text-xs">21.1 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(42.195)" class="preset-btn-p bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center col-span-1.5">
+                        <span class="text-[10px] text-slate-400 font-normal">フル</span>
+                        <span class="text-xs">42.2 km</span>
+                    </button>
+                </div>
+
+                <!-- Custom Distance Input -->
+                <div class="relative z-10">
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">自由入力 (km)</label>
+                    <div class="relative flex items-center">
+                        <input type="number" id="input-dist-p" step="0.01" min="0.1" placeholder="例: 12.5" oninput="clearPresetActive('p')" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 pl-4 pr-12 text-slate-800 font-bold text-lg outline-none transition-all">
+                        <span class="absolute right-4 text-slate-400 font-bold text-sm pointer-events-none">km</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Time Input -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+                <h2 class="text-sm font-bold text-slate-700 mb-3 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                    <span>2. 目標タイムを入力</span>
+                </h2>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">時間 (h)</label>
+                        <input type="number" id="input-hour-p" min="0" max="99" value="0" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 text-center text-slate-800 font-bold text-lg outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">分 (m)</label>
+                        <input type="number" id="input-min-p" min="0" max="59" value="25" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 text-center text-slate-800 font-bold text-lg outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">秒 (s)</label>
+                        <input type="number" id="input-sec-p" min="0" max="59" value="0" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 text-center text-slate-800 font-bold text-lg outline-none transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-4 gap-2 pt-1">
+                <button type="button" onclick="calculatePace()" class="col-span-3 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-brand-500/30 flex items-center justify-center space-x-2 active:scale-95 transition-all text-base">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>ペースを計算する</span>
+                </button>
+                <button type="button" onclick="resetForm('p')" class="col-span-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-2xl flex items-center justify-center active:scale-95 transition-all">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mode 2: Calculate Time -->
+        <div id="section-time" class="space-y-4 hidden">
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-brand-50 rounded-full blur-2xl -z-0 pointer-events-none"></div>
+                
+                <h2 class="text-sm font-bold text-slate-700 mb-3 flex items-center space-x-2 relative z-10">
+                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                    <span>1. 距離を選択または入力</span>
+                </h2>
+
+                <!-- Presets -->
+                <div class="grid grid-cols-3 gap-2 mb-3 relative z-10">
+                    <button type="button" onclick="setDistance(5)" class="preset-btn-t bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-normal">5km</span>
+                        <span class="text-sm">5 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(10)" class="preset-btn-t bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-normal">10km</span>
+                        <span class="text-sm">10 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(15)" class="preset-btn-t bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-400 font-normal">15km</span>
+                        <span class="text-sm">15 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(21.0975)" class="preset-btn-t bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center col-span-1.5">
+                        <span class="text-[10px] text-slate-400 font-normal">ハーフ</span>
+                        <span class="text-xs">21.1 km</span>
+                    </button>
+                    <button type="button" onclick="setDistance(42.195)" class="preset-btn-t bg-slate-50 border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 text-slate-700 font-bold py-2 px-2 rounded-xl text-xs transition-all flex flex-col items-center justify-center col-span-1.5">
+                        <span class="text-[10px] text-slate-400 font-normal">フル</span>
+                        <span class="text-xs">42.2 km</span>
+                    </button>
+                </div>
+
+                <!-- Custom Distance Input -->
+                <div class="relative z-10">
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">自由入力 (km)</label>
+                    <div class="relative flex items-center">
+                        <input type="number" id="input-dist-t" step="0.01" min="0.1" placeholder="例: 10" oninput="clearPresetActive('t')" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 pl-4 pr-12 text-slate-800 font-bold text-lg outline-none transition-all">
+                        <span class="absolute right-4 text-slate-400 font-bold text-sm pointer-events-none">km</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Pace Input -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+                <h2 class="text-sm font-bold text-slate-700 mb-3 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                    <span>2. 1kmのペースを入力</span>
+                </h2>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">分 (min)</label>
+                        <input type="number" id="input-pace-min" min="0" max="30" value="5" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 text-center text-slate-800 font-bold text-lg outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-400 mb-1">秒 (sec)</label>
+                        <input type="number" id="input-pace-sec" min="0" max="59" value="0" class="w-full bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 rounded-2xl py-3 text-center text-slate-800 font-bold text-lg outline-none transition-all">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-4 gap-2 pt-1">
+                <button type="button" onclick="calculateTime()" class="col-span-3 bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-brand-500/30 flex items-center justify-center space-x-2 active:scale-95 transition-all text-base">
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>ゴールタイムを計算する</span>
+                </button>
+                <button type="button" onclick="resetForm('t')" class="col-span-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-2xl flex items-center justify-center active:scale-95 transition-all">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="result-container" class="mt-6 transition-all duration-300">
+            <!-- Dynamic Result Card will appear here -->
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-100 py-3 text-center text-[11px] text-slate-400">
+        <p>Runner Pace & Time Calculator &copy; 2026</p>
+    </footer>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/95 text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center space-x-2 backdrop-blur-md">
+        <i class="fa-solid fa-circle-check text-brand-500"></i>
+        <span id="toast-msg">通知メッセージ</span>
+    </div>
+
+    <script>
+        let currentMode = 'pace';
+
+        // Initialize App on load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            calculatePace(); // Initial default calculation
+        });
+
+        // Switch modes (Pace vs Time)
+        function switchMode(mode) {
+            currentMode = mode;
+            const tabPace = document.getElementById('tab-pace');
+            const tabTime = document.getElementById('tab-time');
+            const secPace = document.getElementById('section-pace');
+            const secTime = document.getElementById('section-time');
+
+            if (mode === 'pace') {
+                tabPace.className = "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 bg-brand-500 text-white shadow-md";
+                tabTime.className = "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 text-slate-400 hover:text-white";
+                secPace.classList.remove('hidden');
+                secTime.classList.add('hidden');
+                calculatePace();
+            } else {
+                tabTime.className = "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 bg-brand-500 text-white shadow-md";
+                tabPace.className = "py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center space-x-2 text-slate-400 hover:text-white";
+                secTime.classList.remove('hidden');
+                secPace.classList.add('hidden');
+                calculateTime();
+            }
+        }
+
+        // Set distance by preset buttons
+        function setDistance(val) {
+            const prefix = currentMode === 'pace' ? 'p' : 't';
+            const distInput = document.getElementById(`input-dist-${prefix}`);
+            distInput.value = val;
+
+            // Highlight preset button
+            const buttons = document.querySelectorAll(`.preset-btn-${prefix}`);
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
+                btn.classList.add('bg-slate-50', 'text-slate-700', 'border-slate-200');
+            });
+            
+            // Find and highlight matching button
+            event.currentTarget.classList.remove('bg-slate-50', 'text-slate-700', 'border-slate-200');
+            event.currentTarget.classList.add('bg-brand-500', 'text-white', 'border-brand-500');
+
+            if (currentMode === 'pace') calculatePace();
+            else calculateTime();
+        }
+
+        function clearPresetActive(prefix) {
+            const buttons = document.querySelectorAll(`.preset-btn-${prefix}`);
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-brand-500', 'text-white', 'border-brand-500');
+                btn.classList.add('bg-slate-50', 'text-slate-700', 'border-slate-200');
+            });
+        }
+
+        // Calculation 1: Calculate Pace from Distance & Target Time
+        function calculatePace() {
+            const dist = parseFloat(document.getElementById('input-dist-p').value);
+            const hours = parseInt(document.getElementById('input-hour-p').value) || 0;
+            const mins = parseInt(document.getElementById('input-min-p').value) || 0;
+            const secs = parseInt(document.getElementById('input-sec-p').value) || 0;
+
+            if (!dist || dist <= 0) {
+                showToast("有効な距離を入力してください");
+                return;
+            }
+
+            const totalSeconds = (hours * 3600) + (mins * 60) + secs;
+            if (totalSeconds <= 0) {
+                showToast("有効な目標タイムを入力してください");
+                return;
+            }
+
+            const secPerKm = totalSeconds / dist;
+            const paceMin = Math.floor(secPerKm / 60);
+            const paceSec = Math.round(secPerKm % 60);
+            const formattedPace = `${paceMin}'${String(paceSec).padStart(2, '0')}"`;
+
+            // Calculate speeds (km/h)
+            const speedKmh = (dist / (totalSeconds / 3600)).toFixed(2);
+
+            // Render Results
+            const container = document.getElementById('result-container');
+            container.innerHTML = `
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 shadow-xl border border-slate-700 relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs uppercase tracking-widest text-brand-400 font-bold flex items-center space-x-1.5">
+                            <i class="fa-solid fa-bullseye"></i>
+                            <span>算出された1kmペース</span>
+                        </span>
+                        <span class="bg-slate-800 border border-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-medium">
+                            距離: ${dist} km
+                        </span>
+                    </div>
+
+                    <div class="text-center my-6">
+                        <div class="text-5xl sm:text-6xl font-black tracking-tight text-brand-400 mb-1">
+                            ${paceMin}<span class="text-2xl font-bold text-white">分</span>${String(paceSec).padStart(2, '0')}<span class="text-2xl font-bold text-white">秒</span>
+                            <span class="text-xs font-normal text-slate-400">/km</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">平均時速: <span class="text-white font-bold">${speedKmh} km/h</span></p>
+                    </div>
+
+                    <div class="border-t border-slate-700/80 pt-4 mt-4 grid grid-cols-2 gap-3 text-center">
+                        <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700/50">
+                            <span class="block text-[10px] text-slate-400">目標タイム合計</span>
+                            <span class="text-sm font-bold text-white">${hours > 0 ? hours + '時間' : ''}${mins}分${secs}秒</span>
+                        </div>
+                        <div class="bg-slate-800/60 p-3 rounded-2xl border border-slate-700/50">
+                            <span class="block text-[10px] text-slate-400">100mあたりのタイム</span>
+                            <span class="text-sm font-bold text-white">${(secPerKm / 10).toFixed(1)} 秒</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            saveToLocalStorage();
+        }
+
+        // Calculation 2: Calculate Goal Time from Distance & Pace
+        function calculateTime() {
+            const dist = parseFloat(document.getElementById('input-dist-t').value);
+            const paceMin = parseInt(document.getElementById('input-pace-min').value) || 0;
+            const paceSec = parseInt(document.getElementById('input-pace-sec').value) || 0;
+
+            if (!dist || dist <= 0) {
+                showToast("有効な距離を入力してください");
+                return;
+            }
+
+            const secPerKm = (paceMin * 60) + paceSec;
+            if (secPerKm <= 0) {
+                showToast("有効なペースを入力してください");
+                return;
+            }
+
+            const totalSeconds = secPerKm * dist;
+            const hours = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = Math.round(totalSeconds % 60);
+
+            let timeString = '';
+            if (hours > 0) {
+                timeString = `${hours}<span class="text-2xl font-bold text-white">時間</span> ${mins}<span class="text-2xl font-bold text-white">分</span> ${String(secs).padStart(2, '0')}<span class="text-2xl font-bold text-white">秒</span>`;
+            } else {
+                timeString = `${mins}<span class="text-2xl font-bold text-white">分</span> ${String(secs).padStart(2, '0')}<span class="text-2xl font-bold text-white">秒</span>`;
+            }
+
+            // Generate split table if distance >= 5km
+            let splitHtml = '';
+            if (dist >= 3) {
+                let splits = [];
+                let step = dist >= 20 ? 5 : (dist >= 10 ? 2 : 1);
+                if (dist === 21.0975) step = 5;
+                if (dist === 42.195) step = 5;
+
+                for (let i = step; i <= Math.floor(dist); i += step) {
+                    let splitSec = secPerKm * i;
+                    let sh = Math.floor(splitSec / 3600);
+                    let sm = Math.floor((splitSec % 3600) / 60);
+                    let ss = Math.round(splitSec % 60);
+                    let sStr = sh > 0 ? `${sh}:${String(sm).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${sm}:${String(ss).padStart(2, '0')}`;
+                    splits.push(`<div class="flex justify-between items-center py-1.5 border-b border-slate-700/50 text-xs"><span class="text-slate-400">${i} km 通過</span><span class="font-bold text-white font-mono">${sStr}</span></div>`);
+                }
+                // Add final goal if not exact
+                if (dist % step !== 0) {
+                    let sh = Math.floor(totalSeconds / 3600);
+                    let sm = Math.floor((totalSeconds % 3600) / 60);
+                    let ss = Math.round(totalSeconds % 60);
+                    let sStr = sh > 0 ? `${sh}:${String(sm).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${sm}:${String(ss).padStart(2, '0')}`;
+                    splits.push(`<div class="flex justify-between items-center py-1.5 text-xs"><span class="text-brand-400 font-bold">${dist} km (ゴール)</span><span class="font-bold text-brand-400 font-mono">${sStr}</span></div>`);
+                }
+
+                splitHtml = `
+                    <div class="mt-4 pt-4 border-t border-slate-700/80">
+                        <h3 class="text-xs font-bold text-slate-400 mb-2 flex items-center space-x-1">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>スプリットタイム予想</span>
+                        </h3>
+                        <div class="bg-slate-800/80 rounded-2xl p-3 max-h-40 overflow-y-auto space-y-1">
+                            ${splits.join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Render Results
+            const container = document.getElementById('result-container');
+            container.innerHTML = `
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 shadow-xl border border-slate-700 relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs uppercase tracking-widest text-brand-400 font-bold flex items-center space-x-1.5">
+                            <i class="fa-solid fa-flag-checkered"></i>
+                            <span>予想ゴールタイム</span>
+                        </span>
+                        <span class="bg-slate-800 border border-slate-700 text-slate-300 text-xs px-3 py-1 rounded-full font-medium">
+                            ${dist} km / ${paceMin}'${String(paceSec).padStart(2, '0')}"ペース
+                        </span>
+                    </div>
+
+                    <div class="text-center my-6">
+                        <div class="text-4xl sm:text-5xl font-black tracking-tight text-brand-400 mb-1">
+                            ${timeString}
+                        </div>
+                    </div>
+
+                    ${splitHtml}
+                </div>
+            `;
+
+            saveToLocalStorage();
+        }
+
+        // Reset inputs
+        function resetForm(prefix) {
+            if (prefix === 'p') {
+                document.getElementById('input-dist-p').value = '10';
+                document.getElementById('input-hour-p').value = '0';
+                document.getElementById('input-min-p').value = '50';
+                document.getElementById('input-sec-p').value = '0';
+                clearPresetActive('p');
+                calculatePace();
+            } else {
+                document.getElementById('input-dist-t').value = '10';
+                document.getElementById('input-pace-min').value = '5';
+                document.getElementById('input-pace-sec').value = '0';
+                clearPresetActive('t');
+                calculateTime();
+            }
+            showToast("入力内容をリセットしました");
+        }
+
+        // Toast notification
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        // Local Storage Handling
+        function saveToLocalStorage() {
+            const data = {
+                mode: currentMode,
+                distP: document.getElementById('input-dist-p').value,
+                hourP: document.getElementById('input-hour-p').value,
+                minP: document.getElementById('input-min-p').value,
+                secP: document.getElementById('input-sec-p').value,
+                distT: document.getElementById('input-dist-t').value,
+                paceMin: document.getElementById('input-pace-min').value,
+                paceSec: document.getElementById('input-pace-sec').value
+            };
+            localStorage.setItem('runner_calc_data', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('runner_calc_data');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.distP) document.getElementById('input-dist-p').value = data.distP;
+                    if (data.hourP) document.getElementById('input-hour-p').value = data.hourP;
+                    if (data.minP) document.getElementById('input-min-p').value = data.minP;
+                    if (data.secP) document.getElementById('input-sec-p').value = data.secP;
+                    if (data.distT) document.getElementById('input-dist-t').value = data.distT;
+                    if (data.paceMin) document.getElementById('input-pace-min').value = data.paceMin;
+                    if (data.paceSec) document.getElementById('input-pace-sec').value = data.paceSec;
+                    if (data.mode) switchMode(data.mode);
+                } catch(e) {
+                    console.error("Failed to load saved data");
+                }
+            } else {
+                // Default preset values
+                document.getElementById('input-dist-p').value = '10';
+                document.getElementById('input-dist-t').value = '10';
+            }
+        }
+    </script>
+</body>
+</html>
